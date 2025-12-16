@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Quiz interactif — Métier et Formation (8 examens)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body{font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial; background:#f8fafc}
+    .btn-choice{transition:all .15s;border:2px solid #e6edf0;text-align:left}
+    .btn-choice:hover:not(:disabled){background:#ecfdf5;border-color:#10b981;transform:translateY(-2px)}
+    .correct{background:#10b981 !important;color:white;border-color:#059669}
+    .incorrect{background:#ef4444 !important;color:white;border-color:#b91c1c}
+    .checked{outline:3px solid rgba(16,185,129,.12)}
+  </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-6">
+  <main id="app" class="w-full max-w-4xl bg-white rounded-3xl p-8 shadow-lg">
+    <header class="flex items-start justify-between mb-6">
+      <div>
+        <h1 class="text-2xl font-extrabold text-emerald-800">Quiz interactif — Métier et Formation</h1>
+        <p class="text-sm text-emerald-600">Formateur : NID ELARJ ABDELKADER — 8 examens (A→H)</p>
+      </div>
+      <div class="flex items-center gap-3">
+        <button id="fullscreen" class="p-2 rounded-full bg-emerald-100 text-emerald-700" title="Plein écran">⤢</button>
+        <div class="text-sm text-gray-600">Question <span id="counter">1</span>/<span id="total">48</span></div>
+      </div>
+    </header>
+
+    <section id="card" class="bg-emerald-50 p-6 rounded-2xl border-l-8 border-emerald-500 mb-6">
+      <div id="qtext" class="text-lg font-bold text-gray-800"></div>
+      <div id="pages" class="text-sm text-gray-600 mt-2 italic"></div>
+    </section>
+
+    <div id="choices" class="grid gap-3 mb-6"></div>
+
+    <div id="open-answer" class="mb-6 hidden">
+      <textarea id="open-input" class="w-full p-3 border rounded-lg" rows="4" placeholder="Votre réponse... (appuyez sur Valider pour voir la correction)"></textarea>
+    </div>
+
+    <div id="feedback" class="hidden mb-4 p-4 rounded-lg bg-yellow-50 border border-yellow-200 italic text-gray-700"></div>
+
+    <div class="flex justify-between items-center">
+      <button id="prev" class="px-6 py-2 bg-gray-200 rounded-xl disabled:opacity-50">Précédent</button>
+      <div class="flex gap-3">
+        <button id="check" class="px-6 py-2 bg-emerald-600 text-white rounded-xl">Valider</button>
+        <button id="next" class="px-6 py-2 bg-emerald-600 text-white rounded-xl">Suivant</button>
+      </div>
+    </div>
+
+    
+  </main>
+
+  <script>
+    // Questions array (48 questions) — chaque item: {q, type, choices?, correct (array), answerText (for open/vf), pages}
+    const questions = [
+      // Exam A (6)
+      { q: "Quels rôles appartiennent réellement au CGCP ?", type: 'multi', choices:["Élaboration du plan de développement","Fixation des salaires des formateurs","Suivi pédagogique et administratif","Organisation des activités parascolaires"], correct:[0,2,3], answerText: "Réponses correctes : Élaboration du plan de développement; Suivi pédagogique et administratif; Organisation des activités parascolaires.", pages: 'p.9–10' },
+      { q: "Quelles sont des règles obligatoires pour les stagiaires ?", type:'multi', choices:["Être correctement coiffé et vêtu","Utiliser le téléphone discrètement en classe","Respecter les horaires","Ne pas fumer dans l'établissement"], correct:[0,2,3], answerText:"Réponses : être coiffé/vêtu correctement; respecter les horaires; interdiction de fumer.", pages:'p.10'},
+      { q: "Le stagiaire peut-il utiliser son téléphone en examen s'il est en mode silencieux ?", type:'vf', choices:["Vrai","Faux"], correct:[1], answerText:"Faux — l'utilisation des moyens de communication est interdite pendant les évaluations.", pages:'p.34'},
+      { q: "Le Conseil de discipline ne se réunit qu'une seule fois par an.", type:'vf', choices:["Vrai","Faux"], correct:[1], answerText:"Faux — il se réunit chaque fois que les circonstances l'exigent.", pages:'p.10'},
+      { q: "Quel est l'objectif principal du module 'Métier et Formation' ?", type:'open', answerText:"Permettre au stagiaire de se situer par rapport au métier et à la démarche de formation; comprendre le projet de formation; confirmer son orientation.", pages:'p.4'},
+      { q: "Citez deux éléments essentiels du règlement intérieur.", type:'open', answerText:"Exemples : port de l'uniforme; respect des horaires; interdiction du téléphone; respect du personnel.", pages:'p.9–11'},
+
+      // Exam B (6)
+      { q: "Rôle réel du Conseil de classe :", type:'multi', choices:["Analyse du climat du groupe","Validation des résultats","Gestion du budget national","Mise en œuvre des sanctions disciplinaires"], correct:[0,1], answerText:"Réponses : analyse du degré d'apprentissage; validation des résultats.", pages:'p.10'},
+      { q: "Fonctions du Comité d'autodiscipline (CAD) :", type:'multi', choices:["Développer la communication","Gérer les absences","Diffuser le règlement intérieur","Sensibiliser à la protection du patrimoine"], correct:[0,2,3], answerText:"Réponses : développer la communication; diffuser/expliquer le RI; sensibiliser à la protection du patrimoine et de l'environnement.", pages:'p.10'},
+      { q: "Le port de l'uniforme est obligatoire.", type:'vf', choices:["Vrai","Faux"], correct:[0], answerText:"Vrai — précisé dans les conduites au sein de l'EFP.", pages:'p.10'},
+      { q: "Une absence non justifiée à un examen donne 0/20.", type:'vf', choices:["Vrai","Faux"], correct:[0], answerText:"Vrai — l'absence non justifiée entraîne une note nulle.", pages:'p.34'},
+      { q: "Quel est le rôle pédagogique du tronc commun ?", type:'open', answerText:"Donner les compétences de base permettant au stagiaire d'identifier ses forces et d'orienter son choix de filière.", pages:'p.22–23'},
+      { q: "Quels trois éléments doit comparer un stagiaire pour confirmer son orientation ?", type:'open', answerText:"Goûts, aptitudes, exigences du métier.", pages:'p.37–38'},
+
+      // Exam C (6)
+      { q: "Quelles tâches appartiennent au technicien en gestion ?", type:'multi', choices:["Calcul des coûts","Réparation mécanique","Préparation des tableaux de bord","Préparation des déclarations fiscales"], correct:[0,2,3], answerText:"Réponses : calcul des coûts; tableaux de bord; déclarations fiscales.", pages:'p.15–21'},
+      { q: "Compétences comportementales nécessaires :", type:'multi', choices:["Initiative","Créativité","Ignorer les règles internes","Discrétion"], correct:[0,1,3], answerText:"Réponses : initiative; créativité; discrétion.", pages:'p.19–20'},
+      { q: "Le stage est obligatoire et noté.", type:'vf', choices:["Vrai","Faux"], correct:[0], answerText:"Vrai — le stage est obligatoire et sa note est prise en compte.", pages:'p.35'},
+      { q: "Le stagiaire peut fumer dans la cour s'il est majeur.", type:'vf', choices:["Vrai","Faux"], correct:[1], answerText:"Faux — il est interdit de fumer au sein de l'établissement.", pages:'p.10'},
+      { q: "Citez trois règles pour une discussion en groupe.", type:'open', answerText:"Respect du tour de parole; ne pas s'écarter du sujet; être attentif aux interventions des autres.", pages:'p.11'},
+      { q: "Pourquoi réaliser une enquête auprès des entreprises ?", type:'open', answerText:"Pour comprendre les réalités du métier, ses exigences et vérifier l'adéquation avec le projet professionnel du stagiaire.", pages:'p.37'},
+
+      // Exam D (6)
+      { q: "Quels outils un technicien doit-il maîtriser ?", type:'multi', choices:["Traitement de texte","Logiciel de paie","Logiciel de montage vidéo","Tableur"], correct:[0,1,3], answerText:"Réponses : traitement de texte; logiciel de paie; tableur.", pages:'p.16–21'},
+      { q: "Compétences techniques du technicien :", type:'multi', choices:["Comptabilité générale","Réalisation de chirurgie dentaire","Législation sociale","Comptabilité analytique"], correct:[0,2,3], answerText:"Réponses : comptabilité générale; législation sociale; comptabilité analytique.", pages:'p.21'},
+      { q: "Le Conseil de classe valide les résultats des examens.", type:'vf', choices:["Vrai","Faux"], correct:[0], answerText:"Vrai — la validation des résultats et l'analyse des examens relèvent du Conseil de Classe.", pages:'p.10'},
+      { q: "Le stagiaire peut s'absenter du stage sans justificatif.", type:'vf', choices:["Vrai","Faux"], correct:[1], answerText:"Faux — les absences doivent être justifiées, l'absence injustifiée a des conséquences.", pages:'p.35'},
+      { q: "Citez deux objectifs du module.", type:'open', answerText:"Se situer par rapport au métier; comprendre la démarche de formation; confirmer son orientation.", pages:'p.4'},
+      { q: "Comment un stagiaire peut-il analyser ses aptitudes ?", type:'open', answerText:"En comparant ses capacités et forces avec les compétences requises par le métier et les exigences du référentiel.", pages:'p.19'},
+
+      // Exam E (6)
+      { q: "Obligations du stagiaire :", type:'multi', choices:["Respect du personnel","Liberté d'utiliser le téléphone","Respect des horaires","Propreté de la salle"], correct:[0,2,3], answerText:"Réponses : respect du personnel; respect des horaires; propreté.", pages:'p.10'},
+      { q: "Pourquoi le secteur Gestion-Commerce attire-t-il ?", type:'multi', choices:["Il est dynamique","Il disparaîtra bientôt","Il recrute dans plusieurs secteurs","Il nécessite des compétences variées"], correct:[0,2,3], answerText:"Réponses : secteur dynamique; recrutements larges; compétences variées.", pages:'p.14'},
+      { q: "Le stage fait partie du calcul de la moyenne.", type:'vf', choices:["Vrai","Faux"], correct:[0], answerText:"Vrai — la note de stage est prise en compte dans la moyenne générale.", pages:'p.35'},
+      { q: "Le CAD prononce les sanctions disciplinaires.", type:'vf', choices:["Vrai","Faux"], correct:[1], answerText:"Faux — le Conseil de Discipline prononce les sanctions; le CAD a d'autres missions.", pages:'p.10'},
+      { q: "Citez une qualité comportementale essentielle.", type:'open', answerText:"Exemples : discrétion, initiative, persévérance, esprit d'équipe.", pages:'p.20'},
+      { q: "Quel est l'objectif de la classe inversée dans la phase 3 ?", type:'open', answerText:"Responsabiliser le stagiaire; faciliter la présentation et le partage des rôles; encourager l'autonomie.", pages:'p.37–38'},
+
+      // Exam F (6)
+      { q: "Définition correcte d'une compétence :", type:'multi', choices:["Ensemble d'habiletés","Geste automatique","Capacité à réaliser une tâche conformément aux exigences","Outil informatique"], correct:[0,2], answerText:"Réponses : ensemble d'habiletés; capacité à réaliser une tâche selon les exigences.", pages:'p.14–15'},
+      { q: "Composantes du tronc commun :", type:'multi', choices:["Soft skills","Bricolage industriel","Comptabilité","Techniques avancées du numérique"], correct:[0,2,3], answerText:"Réponses : soft skills; comptabilité; techniques numériques.", pages:'p.23'},
+      { q: "Le CAD est élu par les stagiaires.", type:'vf', choices:["Vrai","Faux"], correct:[0], answerText:"Vrai — le CAD est élu par l'ensemble des stagiaires.", pages:'p.10'},
+      { q: "L'EFP est un examen de passage.", type:'vf', choices:["Vrai","Faux"], correct:[0], answerText:"Vrai — EFP (Examen de Fin de Passage) permet la validation intermédiaire.", pages:'p.33'},
+      { q: "Citez deux savoirs techniques d'un technicien en gestion.", type:'open', answerText:"Comptabilité générale; fiscalité; gestion commerciale; communication.", pages:'p.21'},
+      { q: "Pourquoi rédiger un rapport final d'orientation ?", type:'open', answerText:"Pour justifier le choix d'orientation en comparant ses goûts, aptitudes et les exigences du métier.", pages:'p.37–38'},
+
+      // Exam G (6)
+      { q: "Activités du technicien en gestion :", type:'multi', choices:["Enregistrer les opérations comptables","Réparer les machines industrielles","Préparer les déclarations fiscales","Établir les tableaux de bord"], correct:[0,2,3], answerText:"Réponses : enregistrement comptable; déclarations fiscales; tableaux de bord.", pages:'p.15–21'},
+      { q: "Règles de discussion en groupe :", type:'multi', choices:["Ne pas s'écarter du sujet","Respecter les tours de parole","Couper la parole si nécessaire","Être attentif"], correct:[0,1,3], answerText:"Réponses : rester dans le sujet; respecter les tours de parole; être attentif.", pages:'p.11'},
+      { q: "La prise de notes fait partie des apprentissages préalables.", type:'vf', choices:["Vrai","Faux"], correct:[0], answerText:"Vrai — la prise de notes est recommandée.", pages:'p.11'},
+      { q: "La fraude n'a pas d'impact sur les années suivantes.", type:'vf', choices:["Vrai","Faux"], correct:[1], answerText:"Faux — la fraude peut entraîner des sanctions, y compris interdictions futures.", pages:'p.34'},
+      { q: "Différence entre goût et intérêt.", type:'open', answerText:"Goût = préférence personnelle; intérêt = tendance à être absorbé par une activité et persévérer.", pages:'p.19'},
+      { q: "Citez deux qualités personnelles importantes pour un gestionnaire.", type:'open', answerText:"Organisation; rigueur; communication; esprit d'initiative.", pages:'p.38'},
+
+      // Exam H (6)
+      { q: "Pourquoi la gestion est-elle essentielle ?", type:'multi', choices:["Présente dans tous les secteurs","Nécessite des compétences variées","Se limite à la comptabilité seulement","Est un secteur ultra dynamique"], correct:[0,1,3], answerText:"Réponses : présente partout; compétences variées; secteur dynamique.", pages:'p.14'},
+      { q: "Savoirs du technicien :", type:'multi', choices:["Comptabilité générale","Marketing","Fiscalité","Maçonnerie"], correct:[0,1,2], answerText:"Réponses : comptabilité; marketing; fiscalité.", pages:'p.21'},
+      { q: "Le stage doit respecter la réglementation de l'entreprise d'accueil.", type:'vf', choices:["Vrai","Faux"], correct:[0], answerText:"Vrai — le stage s'effectue selon les modalités conjointes EFP/entreprise.", pages:'p.35'},
+      { q: "Le CAD décide des sanctions disciplinaires.", type:'vf', choices:["Vrai","Faux"], correct:[1], answerText:"Faux — le Conseil de Discipline prononce les sanctions.", pages:'p.10'},
+      { q: "Décrire le rôle d'interface du technicien.", type:'open', answerText:"Assurer la liaison entre l'entreprise et ses partenaires (clients, fournisseurs, administrations) et fournir des informations fiables.", pages:'p.20'},
+      { q: "Comment confirmer son orientation après enquête ?", type:'open', answerText:"En comparant ses goûts, aptitudes et les exigences observées dans les entreprises ciblées.", pages:'p.37–38'}
+    ];
+
+    // State
+    let idx = 0;
+    const total = questions.length;
+    document.getElementById('total').innerText = total;
+
+    // Helpers
+    function render(){
+      const q = questions[idx];
+      document.getElementById('qtext').innerText = q.q;
+      document.getElementById('pages').innerText = q.pages ? ('Source: ' + q.pages) : '';
+      document.getElementById('feedback').classList.add('hidden');
+
+      const choices = document.getElementById('choices'); choices.innerHTML = '';
+      document.getElementById('open-answer').classList.add('hidden');
+
+      if(q.type === 'multi'){
+        q.choices.forEach((c,i)=>{
+          const btn = document.createElement('button');
+          btn.className = 'btn-choice p-4 rounded-xl font-bold text-left bg-white';
+          btn.innerHTML = `<input type=\"checkbox\" class=\"mr-3\" data-i=\"${i}\"> <span>${c}</span>`;
+          btn.onclick = (e)=>{
+            const checkbox = btn.querySelector('input[type=checkbox]');
+            checkbox.checked = !checkbox.checked;
+            btn.classList.toggle('checked', checkbox.checked);
+          };
+          choices.appendChild(btn);
+        });
+      } else if(q.type === 'vf'){
+        q.choices.forEach((c,i)=>{
+          const btn = document.createElement('button');
+          btn.className = 'btn-choice p-4 rounded-xl font-bold text-left bg-white';
+          btn.innerHTML = `<input type=\"radio\" name=\"vf\" class=\"mr-3\" data-i=\"${i}\"> <span>${c}</span>`;
+          btn.onclick = ()=>{
+            // set radio
+            const radios = choices.querySelectorAll('input[type=radio]');
+            radios.forEach(r=> r.checked = false);
+            const radio = btn.querySelector('input[type=radio]'); radio.checked = true;
+            choices.querySelectorAll('button').forEach(b => b.classList.remove('checked'));
+            btn.classList.add('checked');
+          };
+          choices.appendChild(btn);
+        });
+      } else if(q.type === 'open'){
+        document.getElementById('open-answer').classList.remove('hidden');
+        const btn = document.createElement('div'); btn.className='text-sm text-gray-600'; btn.innerText='(Cette question est à développement. Rédigez votre réponse puis cliquez sur Valider pour afficher la réponse modèle.)';
+        choices.appendChild(btn);
+      }
+
+      document.getElementById('counter').innerText = idx+1;
+
+      document.getElementById('prev').disabled = idx === 0;
+      document.getElementById('next').disabled = idx === total-1;
+    }
+
+    function showFeedback(correct, userSel){
+      const q = questions[idx];
+      const fb = document.getElementById('feedback'); fb.innerHTML = '';
+      // build correct answers list
+      if(q.type === 'multi'){
+        const correctList = q.correct.map(i=> q.choices[i]);
+        const userList = userSel.map(i=> q.choices[i]);
+        fb.innerHTML = `<b>Réponse correcte :</b> ${correctList.join(' ; ')}<br><b>Votre sélection :</b> ${userList.join(' ; ')}<hr><div class=\"mt-2\"><b>Explication :</b> ${q.answerText}</div>`;
+        // color choices
+        const buttons = document.getElementById('choices').querySelectorAll('button');
+        buttons.forEach((b, i)=>{
+          const cb = b.querySelector('input[type=checkbox]');
+          const selected = cb.checked;
+          const isCorrect = q.correct.includes(i);
+          b.disabled = true;
+          if(isCorrect) b.classList.add('correct');
+          if(selected && !isCorrect) b.classList.add('incorrect');
+        });
+      } else if(q.type === 'vf'){
+        const correctTxt = q.choices[q.correct[0]];
+        const radios = document.getElementById('choices').querySelectorAll('button');
+        const sel = Array.from(radios).findIndex(b=> b.querySelector('input[type=radio]').checked);
+        const selTxt = sel>=0? q.choices[sel] : '(aucune sélection)';
+        fb.innerHTML = `<b>Réponse correcte :</b> ${correctTxt}<br><b>Votre choix :</b> ${selTxt}<hr><div class=\"mt-2\"><b>Explication :</b> ${q.answerText}</div>`;
+        radios.forEach((b,i)=>{
+          b.disabled = true;
+          if(i===q.correct[0]) b.classList.add('correct');
+          else if(b.querySelector('input[type=radio]').checked) b.classList.add('incorrect');
+        });
+      } else if(q.type === 'open'){
+        const userText = document.getElementById('open-input').value || '(aucune réponse)';
+        fb.innerHTML = `<b>Réponse modèle :</b><div>${q.answerText}</div><hr><b>Votre réponse :</b><div>${userText}</div>`;
+      }
+      fb.classList.remove('hidden');
+    }
+
+    document.getElementById('check').onclick = ()=>{
+      const q = questions[idx];
+      if(q.type === 'multi'){
+        const buttons = document.getElementById('choices').querySelectorAll('button');
+        const userSel = [];
+        buttons.forEach((b,i)=>{ if(b.querySelector('input[type=checkbox]').checked) userSel.push(i); });
+        // require at least one selection
+        if(userSel.length===0){ alert('Veuillez sélectionner au moins une option.'); return; }
+        showFeedback(q.correct, userSel);
+      } else if(q.type === 'vf'){
+        const buttons = document.getElementById('choices').querySelectorAll('button');
+        const sel = Array.from(buttons).findIndex(b=> b.querySelector('input[type=radio]').checked);
+        if(sel===-1){ alert('Veuillez choisir Vrai ou Faux.'); return; }
+        showFeedback([q.correct[0]], sel>=0 ? [sel] : []);
+      } else if(q.type === 'open'){
+        showFeedback([], []);
+      }
+    };
+
+    document.getElementById('next').onclick = ()=>{
+      if(idx < total-1){ idx++; document.getElementById('open-input').value=''; render(); document.getElementById('feedback').classList.add('hidden'); }
+      else{ alert('Fin du quiz. Vous avez atteint la dernière question.'); }
+    };
+
+    document.getElementById('prev').onclick = ()=>{ if(idx>0){ idx--; document.getElementById('open-input').value=''; render(); document.getElementById('feedback').classList.add('hidden'); } };
+
+    document.getElementById('fullscreen').onclick = ()=>{ if(!document.fullscreenElement) document.documentElement.requestFullscreen(); else document.exitFullscreen(); };
+
+    render();
+  </script>
+</body>
+</html>
